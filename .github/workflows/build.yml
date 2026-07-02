@@ -1,0 +1,26 @@
+name: Build mitmproxy-rs for Termux
+
+on: 
+  workflow_dispatch: # Allows you to trigger the build manually
+
+jobs:
+  build-wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mitmproxy-rs source code
+        uses: actions/checkout@v4
+        with:
+          repository: 'mitmproxy/mitmproxy_rs'
+          ref: '0.12.9' # The exact version you need
+
+      - name: Build Termux Wheel via Maturin
+        uses: PyO3/maturin-action@v1
+        with:
+          target: aarch64-linux-android
+          args: --release --out dist -i python3.13
+          
+      - name: Upload Wheel Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: termux-mitmproxy-rs-wheel
+          path: dist/*.whl
