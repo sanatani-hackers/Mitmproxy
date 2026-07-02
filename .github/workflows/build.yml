@@ -11,7 +11,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'mitmproxy/mitmproxy_rs'
-          ref: '0.12.9' # The exact version you need
+          ref: 'main' # The exact version you need
 
       - name: Build Termux Wheel via Maturin
         uses: PyO3/maturin-action@v1
