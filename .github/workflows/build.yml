@@ -1,31 +1,28 @@
-name: Build mitmproxy-rs for Termux
 
-on: 
-  workflow_dispatch:
+name: Build Native Termux Wheel
+
+on: workflow_dispatch
 
 jobs:
-  build-wheel:
+  build:
     runs-on: ubuntu-latest
+    # This tells GitHub to run the job INSIDE the Termux emulator
+    container:
+      image: ghcr.io/termux/termux-docker:aarch64 
+    
     steps:
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Download exact PyPI source
+      - name: Update Termux and Install Build Tools
         run: |
-          pip download --no-binary :all: --no-deps mitmproxy-rs==0.12.9
-          tar -xzf mitmproxy_rs-0.12.9.tar.gz
+          pkg update -y
+          pkg install -y python rust binutils clang make pkg-config
+
+      - name: Build the Python Package
+        run: |
+          export CARGO_BUILD_TARGET=aarch64-linux-android
+          pip wheel mitmproxy-rs==0.12.9
           
-      - name: Build Termux Wheel via Maturin
-        uses: PyO3/maturin-action@v1
-        with:
-          target: aarch64-linux-android
-          working-directory: mitmproxy_rs-0.12.9
-          args: --release --out ../dist -i python3.13
-          
-      - name: Upload Wheel Artifact
+      - name: Upload Native Wheel
         uses: actions/upload-artifact@v4
         with:
-          name: termux-mitmproxy-rs-wheel
-          path: dist/*.whl
+          name: native-termux-wheel
+          path: ./*.whl
