@@ -12,14 +12,14 @@ jobs:
 
       - name: Build Wheel inside Termux
         run: |
-          # 1. Start the Termux container in the background
+          # 1. Start the Termux container in the background (Privileged is required for QEMU)
           CONTAINER_ID=$(docker run -d --privileged termux/termux-docker:aarch64 sleep infinity)
           
-          # 2. Update Termux and install compilation tools
-          docker exec $CONTAINER_ID bash -c "pkg update -y && pkg install -y python rust binutils clang make pkg-config"
+          # 2. Run the build commands as the 'system' user to bypass the root restriction
+          docker exec --user system $CONTAINER_ID bash -c "pkg update -y && pkg install -y python rust binutils clang make pkg-config"
           
-          # 3. Build the wheel directly into an 'output' folder
-          docker exec $CONTAINER_ID bash -c "mkdir output && cd output && export CARGO_BUILD_TARGET=aarch64-linux-android && pip wheel mitmproxy-rs==0.12.9"
+          # 3. Build the wheel in the user's home directory
+          docker exec --user system $CONTAINER_ID bash -c "mkdir -p ~/output && cd ~/output && export CARGO_BUILD_TARGET=aarch64-linux-android && pip wheel mitmproxy-rs==0.12.9"
           
           # 4. Extract the finished wheel back to the GitHub runner
           docker cp $CONTAINER_ID:/data/data/com.termux/files/home/output/ .
