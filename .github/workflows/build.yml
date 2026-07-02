@@ -1,4 +1,3 @@
-
 name: Build Native Termux Wheel
 
 on: workflow_dispatch
@@ -6,23 +5,27 @@ on: workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-latest
-    # This tells GitHub to run the job INSIDE the Termux emulator
-    container:
-      image: ghcr.io/termux/termux-docker:aarch64 
     
     steps:
-      - name: Update Termux and Install Build Tools
-        run: |
-          pkg update -y
-          pkg install -y python rust binutils clang make pkg-config
+      - name: Setup CPU Emulator (QEMU)
+        uses: docker/setup-qemu-action@v3
 
-      - name: Build the Python Package
+      - name: Build Wheel inside Termux
         run: |
-          export CARGO_BUILD_TARGET=aarch64-linux-android
-          pip wheel mitmproxy-rs==0.12.9
+          # 1. Start the Termux container in the background
+          CONTAINER_ID=$(docker run -d --privileged termux/termux-docker:aarch64 sleep infinity)
+          
+          # 2. Update Termux and install compilation tools
+          docker exec $CONTAINER_ID bash -c "pkg update -y && pkg install -y python rust binutils clang make pkg-config"
+          
+          # 3. Build the wheel directly into an 'output' folder
+          docker exec $CONTAINER_ID bash -c "mkdir output && cd output && export CARGO_BUILD_TARGET=aarch64-linux-android && pip wheel mitmproxy-rs==0.12.9"
+          
+          # 4. Extract the finished wheel back to the GitHub runner
+          docker cp $CONTAINER_ID:/data/data/com.termux/files/home/output/ .
           
       - name: Upload Native Wheel
         uses: actions/upload-artifact@v4
         with:
           name: native-termux-wheel
-          path: ./*.whl
+          path: output/*.whl
